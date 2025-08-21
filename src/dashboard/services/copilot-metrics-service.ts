@@ -4,6 +4,8 @@ import { ServerActionResponse } from "@/features/common/server-action-response";
 import { SqlQuerySpec } from "@azure/cosmos";
 import { format } from "date-fns";
 import { cosmosClient, cosmosConfiguration } from "./cosmos-db-service";
+import { postgresConfiguration } from "./postgres-db-service";
+import { getCopilotMetricsFromPostgres } from "./copilot-metrics-postgres-service";
 import { ensureGitHubEnvConfig } from "./env-service";
 import { stringIsNullOrEmpty, applyTimeFrameLabel } from "../utils/helpers";
 import { sampleData } from "./sample-data";
@@ -20,6 +22,7 @@ export const getCopilotMetrics = async (
   filter: IFilter
 ): Promise<ServerActionResponse<CopilotUsageOutput[]>> => {
   const env = ensureGitHubEnvConfig();
+  const isPostgresConfig = postgresConfiguration();
   const isCosmosConfig = cosmosConfiguration();
 
   if (env.status !== "OK") {
@@ -40,7 +43,12 @@ export const getCopilotMetrics = async (
           filter.organization = organization;
         }
         break;
-    }    if (isCosmosConfig) {
+    }    
+    
+    // Prefer PostgreSQL over Cosmos DB for database queries
+    if (isPostgresConfig) {
+      return getCopilotMetricsFromPostgres(filter);
+    } else if (isCosmosConfig) {
       return getCopilotMetricsFromDatabase(filter);
     }
     

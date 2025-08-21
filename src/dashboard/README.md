@@ -1,8 +1,44 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# GitHub Copilot Metrics Dashboard
+
+This is a [Next.js](https://nextjs.org/) project for visualizing GitHub Copilot metrics with support for both Azure Cosmos DB and AWS RDS PostgreSQL.
+
+## Database Support
+
+The application supports two database backends:
+
+1. **PostgreSQL (AWS RDS)** - Primary/preferred option
+2. **Azure Cosmos DB** - Legacy support for backward compatibility
+
+See [POSTGRESQL_MIGRATION.md](./POSTGRESQL_MIGRATION.md) for detailed migration instructions.
+
+## Environment Variables
+
+Create a `.env.local` file with the following variables:
+
+### Required GitHub Configuration
+```env
+GITHUB_ENTERPRISE=your-github-enterprise-name
+GITHUB_ORGANIZATION=your-github-organization-name
+GITHUB_TOKEN=your-github-token
+GITHUB_API_VERSION=2022-11-28
+GITHUB_API_SCOPE=organization
+```
+
+### Database Configuration (choose one)
+
+**PostgreSQL (recommended):**
+```env
+DATABASE_URL=postgresql://username:password@localhost:5432/copilot_metrics_db
+```
+
+**Azure Cosmos DB (legacy):**
+```env
+AZURE_COSMOSDB_ENDPOINT=your-azure-cosmosdb-endpoint
+```
 
 ## Getting Started
 
-First, install packages using:
+First, install packages:
 ```bash
 npm install
 # or
@@ -12,7 +48,15 @@ pnpm install
 # or
 bun install
 ```
-Then, run the development server:
+
+### PostgreSQL Setup (optional)
+
+If using PostgreSQL, set up your database schema:
+```bash
+DATABASE_URL="your-postgresql-connection-string" node migrate.js
+```
+
+### Run Development Server
 
 ```bash
 npm run dev
@@ -26,9 +70,30 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Available Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run start` - Start production server
+- `npm run lint` - Run ESLint
+- `npm test` - Run test suite
+- `node migrate.js` - Run database migrations (PostgreSQL)
+
+## Features
+
+- Real-time GitHub Copilot metrics visualization
+- Support for enterprise and organization scopes
+- Team-based filtering and analytics
+- Seat management and allocation tracking
+- Historical data analysis
+- Responsive dashboard design
+
+## Database Priority
+
+The application automatically selects the database in this order:
+1. PostgreSQL (if `DATABASE_URL` is configured)
+2. Cosmos DB (if `AZURE_COSMOSDB_ENDPOINT` is configured)
+3. GitHub API direct access (if no database is configured)
 
 ## Learn More
 

@@ -3,6 +3,8 @@ import { ServerActionResponse } from "@/features/common/server-action-response";
 import { ensureGitHubEnvConfig } from "./env-service";
 import { CopilotSeatsData, SeatAssignment, GitHubTeam } from "@/features/common/models";
 import { cosmosClient, cosmosConfiguration } from "./cosmos-db-service";
+import { postgresConfiguration } from "./postgres-db-service";
+import { getCopilotSeatsFromPostgres, aggregateSeatsDataByTeam } from "./copilot-seat-postgres-service";
 import { format } from "date-fns";
 import { SqlQuerySpec } from "@azure/cosmos";
 import { stringIsNullOrEmpty } from "../utils/helpers";
@@ -19,6 +21,7 @@ export const getCopilotSeats = async (
   filter: IFilter
 ): Promise<ServerActionResponse<CopilotSeatsData>> => {
   const env = ensureGitHubEnvConfig();
+  const isPostgresConfig = postgresConfiguration();
   const isCosmosConfig = cosmosConfiguration();
 
   if (env.status !== "OK") {
@@ -40,9 +43,23 @@ export const getCopilotSeats = async (
         }
         break;
     }
-    if (isCosmosConfig) {
+    
+    // Prefer PostgreSQL over Cosmos DB for database queries
+    if (isPostgresConfig) {
+      const seatsResponse = await getCopilotSeatsFromPostgres(filter);
+      if (seatsResponse.status === "OK" && seatsResponse.response) {
+        // Aggregate the seats data from multiple pages into a single response
+        const aggregatedSeats = aggregateSeatsDataByTeam(seatsResponse.response, filter.team);
+        return {
+          status: "OK",
+          response: aggregatedSeats,
+        };
+      }
+      return seatsResponse as ServerActionResponse<CopilotSeatsData>;
+    } else if (isCosmosConfig) {
       return getCopilotSeatsFromDatabase(filter);
     }
+    
     return getCopilotSeatsFromApi(filter);
   } catch (e) {
     return unknownResponseError(e);
