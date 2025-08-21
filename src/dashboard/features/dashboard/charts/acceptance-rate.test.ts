@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { applyTimeFrameLabel } from "../services/helper";
-import { sampleData } from "../services/sample-data";
+import { applyTimeFrameLabel } from "@/utils/helpers";
+import { sampleData } from "@/services/sample-data";
 import { computeAcceptanceAverage } from "./common";
 
 describe("computeAcceptanceAverage", () => {
