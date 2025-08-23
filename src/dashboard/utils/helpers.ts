@@ -1,4 +1,4 @@
-import { featuresEnvConfig } from "@/services/env-service";
+import { featuresEnvConfig } from "../services/env-service";
 import { format, startOfWeek, parse, isValid } from "date-fns";
 import { CopilotMetrics, CopilotUsageOutput, Breakdown } from "@/features/common/models";
 
