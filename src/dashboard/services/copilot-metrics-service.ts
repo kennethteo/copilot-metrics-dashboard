@@ -1,9 +1,10 @@
 import { formatResponseError, unknownResponseError } from "@/features/common/response-error";
 import { CopilotMetrics, CopilotUsageOutput } from "@/features/common/models";
 import { ServerActionResponse } from "@/features/common/server-action-response";
-import { SqlQuerySpec } from "@azure/cosmos";
+// import { SqlQuerySpec } from "@azure/cosmos";
 import { format } from "date-fns";
-import { cosmosClient, cosmosConfiguration } from "./cosmos-db-service";
+// import { cosmosClient, cosmosConfiguration } from "./cosmos-db-service";
+import { pgPool, pgConfiguration } from "./pg/pg-db-service";
 import { ensureGitHubEnvConfig } from "./env-service";
 import { stringIsNullOrEmpty, applyTimeFrameLabel } from "../utils/helpers";
 import { sampleData } from "./sample-data";
@@ -20,7 +21,7 @@ export const getCopilotMetrics = async (
   filter: IFilter
 ): Promise<ServerActionResponse<CopilotUsageOutput[]>> => {
   const env = ensureGitHubEnvConfig();
-  const isCosmosConfig = cosmosConfiguration();
+  const isPgConfig = pgConfiguration();
 
   if (env.status !== "OK") {
     return env;
@@ -40,7 +41,8 @@ export const getCopilotMetrics = async (
           filter.organization = organization;
         }
         break;
-    }    if (isCosmosConfig) {
+    }
+    if (isPgConfig) {
       return getCopilotMetricsFromDatabase(filter);
     }
     
@@ -209,20 +211,20 @@ export const getCopilotTeamsMetricsFromApi = async (
 export const getCopilotMetricsFromDatabase = async (
   filter: IFilter
 ): Promise<ServerActionResponse<CopilotUsageOutput[]>> => {
-  const client = cosmosClient();
-  const database = client.database("platform-engineering");
-  const container = database.container("metrics_history");
+  // Assumptions:
+  // - Table: metrics_history
+  // - Columns: date (DATE), enterprise TEXT NULL, organization TEXT NULL, team TEXT NULL, payload JSONB
+  // - payload stores the CopilotMetrics object shape
+  const pool = pgPool();
 
   let start = "";
   let end = "";
-  const maxDays = 365 * 2; // maximum 2 years of data
   const maximumDays = 31;
 
   if (filter.startDate && filter.endDate) {
     start = format(filter.startDate, "yyyy-MM-dd");
     end = format(filter.endDate, "yyyy-MM-dd");
   } else {
-    // set the start date to today and the end date to 31 days ago
     const todayDate = new Date();
     const startDate = new Date(todayDate);
     startDate.setDate(todayDate.getDate() - maximumDays);
@@ -231,57 +233,47 @@ export const getCopilotMetricsFromDatabase = async (
     end = format(todayDate, "yyyy-MM-dd");
   }
 
-  let querySpec: SqlQuerySpec = {
-    query: `SELECT * FROM c WHERE c.date >= @start AND c.date <= @end`,
-    parameters: [
-      { name: "@start", value: start },
-      { name: "@end", value: end },
-    ],
-  };
+  const values: any[] = [start, end];
+  let where = `date >= $1 AND date <= $2`;
+  let idx = values.length;
 
   if (filter.enterprise) {
-    querySpec.query += ` AND c.enterprise = @enterprise`;
-    querySpec.parameters?.push({
-      name: "@enterprise",
-      value: filter.enterprise,
-    });
+    idx += 1; values.push(filter.enterprise);
+    where += ` AND enterprise = $${idx}`;
+  }
+  if (filter.organization) {
+    idx += 1; values.push(filter.organization);
+    where += ` AND organization = $${idx}`;
   }
 
-  if (filter.organization) {
-    querySpec.query += ` AND c.organization = @organization`;
-    querySpec.parameters?.push({
-      name: "@organization",
-      value: filter.organization,
-    });
-  }
   if (filter.team && filter.team.length > 0) {
     if (filter.team.length === 1) {
-      querySpec.query += ` AND c.team = @team`;
-      querySpec.parameters?.push({ name: "@team", value: filter.team[0] });
+      idx += 1; values.push(filter.team[0]);
+      where += ` AND team = $${idx}`;
     } else {
-      const teamConditions = filter.team
-        .map((_, index) => `c.team = @team${index}`)
-        .join(" OR ");
-      querySpec.query += ` AND (${teamConditions})`;
-      filter.team.forEach((team, index) => {
-        querySpec.parameters?.push({ name: `@team${index}`, value: team });
-      });
+      const teamPlaceholders: string[] = [];
+      for (const t of filter.team) {
+        idx += 1; values.push(t);
+        teamPlaceholders.push(`$${idx}`);
+      }
+      where += ` AND team IN (${teamPlaceholders.join(", ")})`;
     }
-  }else {
-    querySpec.query += ` AND c.team = null`;
+  } else {
+    where += ` AND team IS NULL`;
   }
 
-  const { resources } = await container.items
-    .query<CopilotMetrics>(querySpec, {
-      maxItemCount: maxDays,
-    })
-    .fetchAll();
+  const sql = `
+    SELECT payload
+    FROM metrics_history
+    WHERE ${where}
+    ORDER BY date ASC
+    LIMIT 730
+  `;
 
+  const { rows } = await pool.query(sql, values);
+  const resources: CopilotMetrics[] = (rows as Array<{ payload: CopilotMetrics }>).map((r) => r.payload);
   const dataWithTimeFrame = applyTimeFrameLabel(resources);
-  return {
-    status: "OK",
-    response: dataWithTimeFrame,
-  };
+  return { status: "OK", response: dataWithTimeFrame };
 };
 
 export const _getCopilotMetrics = (): Promise<CopilotUsageOutput[]> => {

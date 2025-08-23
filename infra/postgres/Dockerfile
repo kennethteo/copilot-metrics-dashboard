@@ -9,5 +9,5 @@ ENV POSTGRES_PASSWORD=dev_password
 # Expose the default PostgreSQL port
 EXPOSE 5432
 
-# Optionally, copy initialization scripts
-# COPY init.sql /docker-entrypoint-initdb.d/
+# Copy initialization scripts (runs only on first init of the volume)
+COPY init.sql /docker-entrypoint-initdb.d/

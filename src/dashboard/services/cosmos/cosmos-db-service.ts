@@ -1,7 +1,7 @@
 import { ServerActionResponse } from "@/features/common/server-action-response";
 import { CosmosClient } from "@azure/cosmos";
 import { DefaultAzureCredential } from "@azure/identity";
-import { stringIsNullOrEmpty } from "../utils/helpers";
+import { stringIsNullOrEmpty } from "../../utils/helpers";
 
 export const cosmosClient = () => {
   const endpoint = process.env.AZURE_COSMOSDB_ENDPOINT;

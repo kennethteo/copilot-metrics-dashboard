@@ -34,7 +34,10 @@ const arrayIncludes = (row: any, id: string, value: any[]) => {
 };
 
 const stringIncludes = (row: any, id: string, value: string) => {
-    return row.getValue(id).includes(value);
+    const cell = row.getValue(id);
+    if (typeof cell !== "string") return false;
+    const needle = (value ?? "").toString().toLowerCase();
+    return cell.toLowerCase().includes(needle);
 };
 
 const columns: ColumnDef<SeatData>[] = [
@@ -75,15 +78,15 @@ export const SeatsList = () => {
                 <DataTable
                     columns={columns.filter((col) => col.id !== "organization" || hasOrganization)}
                     data={(seatsData?.seats ?? []).map((seat) => ({
-                        user: seat.assignee.login,
-                        organization: seat.organization?.login,
-                        team: seat.assigning_team?.name,
-                        createdAt: new Date(seat.created_at).toLocaleDateString(),
-                        updatedAt: new Date(seat.updated_at).toLocaleDateString(),
-                        lastActivityAt: seat.last_activity_at ? new Date(seat.last_activity_at).toLocaleDateString() : "-",
-                        lastActivityEditor: formatEditorName(seat.last_activity_editor),
-                        planType: seat.plan_type,
-                        pendingCancellationDate: seat.pending_cancellation_date ? new Date(seat.pending_cancellation_date).toLocaleDateString() : "N/A",
+                        user: seat?.assignee?.login ?? (seat?.assignee?.id ? String(seat.assignee.id) : "unknown"),
+                        organization: seat?.organization?.login ?? null,
+                        team: seat?.assigning_team?.name ?? null,
+                        createdAt: seat?.created_at ? new Date(seat.created_at).toLocaleDateString() : "-",
+                        updatedAt: seat?.updated_at ? new Date(seat.updated_at).toLocaleDateString() : "-",
+                        lastActivityAt: seat?.last_activity_at ? new Date(seat.last_activity_at).toLocaleDateString() : "-",
+                        lastActivityEditor: seat?.last_activity_editor ? formatEditorName(seat.last_activity_editor) : "-",
+                        planType: seat?.plan_type ?? "-",
+                        pendingCancellationDate: seat?.pending_cancellation_date ? new Date(seat.pending_cancellation_date).toLocaleDateString() : "N/A",
                     }))}
                     initialVisibleColumns={{
                         updatedAt: false,

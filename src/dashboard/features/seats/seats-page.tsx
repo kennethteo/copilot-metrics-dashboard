@@ -4,7 +4,7 @@ import { DataProvider } from "./seats-state";
 import { Header } from "./header";
 import { Stats } from "./stats/stats";
 import { getFeatures } from "@/utils/helpers";
-import { cosmosConfiguration } from "@/services/cosmos-db-service";
+import { cosmosConfiguration } from "@/services/cosmos/cosmos-db-service";
 import { getCopilotSeats, IFilter as SeatServiceFilter } from "@/services/copilot-seat-service";
 
 export interface IProps {
