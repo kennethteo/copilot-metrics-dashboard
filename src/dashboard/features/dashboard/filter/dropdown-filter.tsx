@@ -67,7 +67,10 @@ export function DropdownFilter(props: DropdownFilterProps) {
                   return (
                     <CommandItem
                       key={option.value}
-                      onSelect={onSelect}
+                      // Call the provided onSelect explicitly with the option value.
+                      // This avoids relying on the underlying CommandItem's onSelect
+                      // signature which may pass different args.
+                      onSelect={() => onSelect(option.value)}
                       value={option.value}
                     >
                       <div
