@@ -16,6 +16,7 @@ Tiny Node.js scripts to load sample Copilot metrics and seats JSON into the loca
 npm install
 ```
 
+
 ## Usage
 
 - Test database connectivity:
@@ -36,17 +37,24 @@ npm run load:metrics
 npm run load:seats
 ```
 
+
 - Clear all data (truncate both tables):
 
 ```sh
 npm run clear:all
 ```
 
+- Anonymise all sample JSON files in `samples/`:
+
+```sh
+npm run anonymise:samples
+```
+
 You can override paths and scope via env vars at runtime:
 
 ```sh
 METRICS_JSON=./samples/metrics.json \
-SCOPE_ENTERPRISE=wilmar \
+SCOPE_ENTERPRISE=enterprise1 \
 SCOPE_ORG=core \
 SCOPE_TEAM=vn-gdc \
 npm run load:metrics
@@ -54,7 +62,7 @@ npm run load:metrics
 
 ```sh
 SEATS_JSON=./samples/seats.json \
-SCOPE_ENTERPRISE=wilmar \
+SCOPE_ENTERPRISE=enterprise1 \
 SCOPE_ORG=core \
 SEATS_PAGE=1 \
 SEATS_HAS_NEXT_PAGE=false \

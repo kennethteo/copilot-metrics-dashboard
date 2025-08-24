@@ -8,7 +8,8 @@
     "load:metrics": "node scripts/load-metrics.js",
     "load:seats": "node scripts/load-seats.js",
   "check:conn": "node scripts/test-connection.js",
-  "clear:all": "node scripts/clear-db.js"
+  "clear:all": "node scripts/clear-db.js",
+  "anonymise:samples": "node scripts/anonymise-samples.js"
   },
   "dependencies": {
     "dotenv": "^16.4.5",
