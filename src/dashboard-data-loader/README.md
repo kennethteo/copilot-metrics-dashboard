@@ -31,7 +31,7 @@ npm run check:conn
 npm run load:metrics
 ```
 
-- Load team metrics directly from the GitHub API into `metrics_history` (team column populated):
+- Load team metrics directly from the GitHub API into `metrics_history` (team column populated). If TEAMS is omitted, teams are auto-discovered from your org/enterprise:
 
 ```sh
 # Configure .env first (see below), then run:
@@ -41,9 +41,14 @@ npm run load:metrics:api
 GITHUB_API_SCOPE=enterprise \
 GITHUB_ENTERPRISE=my-enterprise \
 GITHUB_TOKEN=ghp_... \
-TEAMS=team-a,team-b \
 SINCE=2025-07-01 \
 UNTIL=2025-07-31 \
+npm run load:metrics:api
+
+# Auto-discover all teams (omit TEAMS):
+GITHUB_API_SCOPE=organization \
+GITHUB_ORGANIZATION=my-org \
+GITHUB_TOKEN=ghp_... \
 npm run load:metrics:api
 ```
 
@@ -51,6 +56,24 @@ npm run load:metrics:api
 
 ```sh
 npm run load:seats
+```
+
+- Load organization or enterprise aggregate metrics directly from the GitHub API into `metrics_history` (team set to null):
+
+```sh
+# Organization scope
+GITHUB_API_SCOPE=organization \
+GITHUB_ORGANIZATION=my-org \
+GITHUB_TOKEN=ghp_... \
+SINCE=2025-07-01 \
+UNTIL=2025-07-31 \
+npm run load:scope-metrics:api
+
+# Enterprise scope
+GITHUB_API_SCOPE=enterprise \
+GITHUB_ENTERPRISE=my-enterprise \
+GITHUB_TOKEN=ghp_... \
+npm run load:scope-metrics:api
 ```
 
 - Load seats directly from the GitHub API into `seats_history` (paged):

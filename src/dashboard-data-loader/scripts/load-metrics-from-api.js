@@ -49,10 +49,71 @@ function assertEnv() {
   }
   if (GH.scope === 'enterprise' && !GH.enterprise) errs.push('GITHUB_ENTERPRISE');
   if (GH.scope === 'organization' && !GH.organization) errs.push('GITHUB_ORGANIZATION');
-  if (TEAMS.length === 0) errs.push('TEAMS (comma-separated team slugs)');
   if (errs.length) {
     throw new Error(`Missing/invalid env: ${errs.join(', ')}`);
   }
+}
+
+function hasNextFromLink(linkHeader) {
+  if (!linkHeader) return false;
+  return /rel="next"/i.test(linkHeader);
+}
+
+async function fetchOrgTeamSlugs() {
+  const perPage = 100;
+  let page = 1;
+  const slugs = [];
+  while (true) {
+    const url = `https://api.github.com/orgs/${GH.organization}/teams?per_page=${perPage}&page=${page}`;
+    const res = await fetch(url, { headers: ghHeaders() });
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      throw new Error(`GitHub API error listing org teams: ${res.status} ${res.statusText} ${text}`);
+    }
+    const data = await res.json();
+    if (Array.isArray(data)) {
+      for (const t of data) if (t?.slug) slugs.push(t.slug);
+    }
+    const link = res.headers.get('link');
+    const hasNext = hasNextFromLink(link) && Array.isArray(data) && data.length === perPage;
+    page += 1;
+    if (!hasNext) break;
+    await new Promise((r) => setTimeout(r, 200));
+  }
+  return slugs;
+}
+
+async function fetchEnterpriseTeamSlugs() {
+  const perPage = 100;
+  let page = 1;
+  const slugs = [];
+  while (true) {
+    const url = `https://api.github.com/enterprises/${GH.enterprise}/teams?per_page=${perPage}&page=${page}`;
+    const res = await fetch(url, { headers: ghHeaders() });
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      throw new Error(`GitHub API error listing enterprise teams: ${res.status} ${res.statusText} ${text}`);
+    }
+    const data = await res.json();
+    if (Array.isArray(data)) {
+      for (const t of data) if (t?.slug) slugs.push(t.slug);
+    }
+    const link = res.headers.get('link');
+    const hasNext = hasNextFromLink(link) && Array.isArray(data) && data.length === perPage;
+    page += 1;
+    if (!hasNext) break;
+    await new Promise((r) => setTimeout(r, 200));
+  }
+  return slugs;
+}
+
+async function resolveTeamsInput() {
+  if (TEAMS.length > 0) return TEAMS;
+  console.log('TEAMS not provided; auto-discovering teams from GitHub...');
+  const slugs = GH.scope === 'enterprise' ? await fetchEnterpriseTeamSlugs() : await fetchOrgTeamSlugs();
+  if (!slugs.length) throw new Error('No teams found for the specified scope. Provide TEAMS or ensure you have permissions.');
+  console.log(`Discovered ${slugs.length} team(s).`);
+  return slugs;
 }
 
 function buildUrl(teamSlug) {
@@ -175,7 +236,8 @@ async function main() {
   let total = 0;
   try {
     await client.query('BEGIN');
-    for (const teamSlug of TEAMS) {
+  const teamSlugs = await resolveTeamsInput();
+  for (const teamSlug of teamSlugs) {
       const { enterprise, organization } = buildUrl(teamSlug);
       console.log(`Fetching metrics for team '${teamSlug}' (${GH.scope})...`);
       // resolve full team name (best-effort)

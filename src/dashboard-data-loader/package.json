@@ -9,6 +9,7 @@
   "load:metrics:api": "node scripts/load-metrics-from-api.js",
   "load:seats": "node scripts/load-seats.js",
   "load:seats:api": "node scripts/load-seats-from-api.js",
+  "load:scope-metrics:api": "node scripts/load-scope-metrics-from-api.js",
   "check:conn": "node scripts/test-connection.js",
   "clear:all": "node scripts/clear-db.js",
   "anonymise:samples": "node scripts/anonymise-samples.js"
