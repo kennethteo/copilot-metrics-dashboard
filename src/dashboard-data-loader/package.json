@@ -1,0 +1,20 @@
+{
+  "name": "copilot-dashboard-data-loader",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Simple loaders to import Copilot metrics and seats JSON into Postgres",
+  "main": "scripts/index.js",
+  "scripts": {
+    "load:metrics": "node scripts/load-metrics.js",
+    "load:seats": "node scripts/load-seats.js",
+  "check:conn": "node scripts/test-connection.js",
+  "clear:all": "node scripts/clear-db.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "pg": "^8.12.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
