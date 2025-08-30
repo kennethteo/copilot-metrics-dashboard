@@ -42,19 +42,24 @@ export const DateFilter = ({ disabled = false }: DateFilterProps) => {
   const applyFilters = () => {
     if (date) {
       const formattedDate = format(date, "yyyy-MM-dd");
-
-      router.push(`?date=${formattedDate}`, {
-        scroll: false,
-      });
+      // Preserve existing query params and update date; reset page to 1
+      const params = new URLSearchParams(window.location.search);
+      params.set("date", formattedDate);
+      if (params.has("page")) params.set("page", "1");
+      router.push(`?${params.toString()}` , { scroll: false });
       router.refresh();
       setIsOpen(false);
     }
   };
 
   const resetFilters = () => {
-    router.push(`/seats`, {
-      scroll: false,
-    });
+    // Clear only the date param, keep other filters
+    const params = new URLSearchParams(window.location.search);
+    params.delete("date");
+    if (params.has("page")) params.set("page", "1");
+    const query = params.toString();
+    const href = query ? `?${query}` : `/seats`;
+    router.push(href, { scroll: false });
     router.refresh();
     setIsOpen(false);
   };
